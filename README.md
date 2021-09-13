@@ -1,4 +1,4 @@
-# CC Sudoku Puzzle Solver
+# Computer Vision Sudoku Puzzle Solver
 
 version: main
 
