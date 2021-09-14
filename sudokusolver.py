@@ -4,7 +4,7 @@ class SudokuSolver:
 
   def __init__(self, puzzle):
     self.solution = copy.deepcopy(puzzle)
-    self.solve()
+    self.isSolvable = self.solve()
     print(self.solution)
 
   def findNextCellToFill(self, i, j):
