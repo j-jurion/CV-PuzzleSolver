@@ -1,7 +1,8 @@
 import cv2 as cv
 import numpy as np
-import matplotlib.pyplot as plt 
 import pytesseract ;#Install tesseract.exe file (v4.1.1)
+
+from puzzleviewer import PuzzleViewer
 
 pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
@@ -20,6 +21,7 @@ puzzle = [
   [0,0,0,0,0,0,0,0,0],
   [0,0,0,0,0,0,0,0,0],
 ]
+
 
 
 img = cv.imread('Images/sudoku2.jpg')
@@ -149,5 +151,8 @@ cv.imshow("ImageWarped with cells", imgWarped)
 
 
 print(puzzle)
+
+puzzleViewer = PuzzleViewer(widthImg, puzzle)
+cv.imshow('Solution', puzzleViewer.img)
 
 cv.waitKey(0)
