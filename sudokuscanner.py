@@ -1,12 +1,29 @@
 import cv2 as cv
 import numpy as np
+import matplotlib.pyplot as plt 
+import pytesseract ;#Install tesseract.exe file (v4.1.1)
 
-widthImg = 500
-heightImg = 500
+pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+cellwidth = 55
+widthImg = cellwidth*9
+heightImg = cellwidth*9
+
+puzzle = [
+  [0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+]
 
 
-img = cv.imread('Images/sudoku1.jpg')
-cv.imshow('Sudoku', img)
+img = cv.imread('Images/sudoku2.jpg')
+#cv.imshow('Sudoku', img)
 
 imgGray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 #cv.imshow('Gray', gray)
@@ -49,31 +66,36 @@ def getContours(img):
   cv.drawContours(imgContour, biggest, -1, (255,0,0), 20)
   return biggest
 
-def getCells(img):
-  cells = np.array([])
-  nbCells = 81 ;#9x9 = 81
-  contours, hierarchy = cv.findContours(img, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
-  #contours, hierarchy = cv.findContours(img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-  for cnt in contours:
-    area = cv.contourArea(cnt)
-    if area < 250:
-      print(area)
-      #print(cnt)
-      cv.drawContours(imgWarpedCells, cnt, -1, (255,0,0), 1)
-      #print(hierarchy)
-    #TODO
-    #If contour is found in another contour, a number is present in the cell. 
-    # For this cell store the cell index and find the value of the number in the cell.
+"""
+Select cells which have numbers in it and fill in corresponding element in puzzle array.
+"""
+def initPuzzle(img):
+  for x in range (9):
+    for y in range (9):
+      cv.rectangle(img, (x*cellwidth,y*cellwidth), ((x+1)*cellwidth, (y+1)*cellwidth), (0,255,0), 2)
+      cell = img[x*cellwidth+5:(x+1)*cellwidth-5, y*cellwidth+5:(y+1)*cellwidth-5]
+      cell = preProcessing(cell, False)
+      contours, hierarchy = cv.findContours(cell, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+      file = open("recognized.txt", "w+")
+      file.write("")
+      file.close()
+      #Select cells which have a value
+      if contours:                         
+        file = open("recognized.txt", "a")
+        cv.imshow(f'Cell ({x,y})', cell)
+        puzzle[x][y] = getValue(cell, file)
 
-    #cv.imshow('cnt',imgWarpedCells)
-    # area = cv.contourArea(cnt)
-    # if area > 50:
-    #   cv.drawContours(imgWarpedCells, cnt, -1, (255,0,0), 3)
-    #   peri = cv.arcLength(cnt, True) ;#True: we expect all our shapes to be closed
-    #   approx = cv.approxPolyDP(cnt, 0.02*peri, True)
-    #   print(peri)
-    #   print(approx)
-  return cells
+
+"""
+Return the value of the number on the image, using trained a model.
+"""
+def getValue(img, file):
+  text = pytesseract.image_to_string(img)
+  print(text)
+  file.write(text)
+  file.write("\n")
+  return 1
+
 
 """
 Re-order the corner points of the contour from smallest to largest
@@ -122,15 +144,10 @@ if biggest.size !=0:
 
 #cv.imshow('Contour', imgContour)
 
-imgWarpedCells = imgWarped.copy()
-imgWarpedCellsProcessed = preProcessing(imgWarpedCells, False)
+initPuzzle(imgWarped)
+cv.imshow("ImageWarped with cells", imgWarped)
 
 
-cells = getCells(imgWarpedCellsProcessed)
-cv.imshow('PreProcessed', imgWarpedCellsProcessed)
-
-cv.imshow('Cells', imgWarpedCells)
-
-
+print(puzzle)
 
 cv.waitKey(0)
