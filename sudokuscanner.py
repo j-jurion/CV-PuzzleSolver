@@ -7,6 +7,10 @@ from sudokusolver import SudokuSolver
 
 pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
+
+"""
+Constants
+"""
 cellwidth = 55
 border = 5
 widthImg = cellwidth*9
@@ -16,25 +20,17 @@ heightImg = cellwidth*9
 
 
 
-img = cv.imread('images/sudoku2.jpg')
-cv.imshow('Sudoku', img)
-
-imgGray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-#cv.imshow('Gray', gray)
-
-#TODO crop to size of puzzle
-#cropped = img[50:200, 200:400]
-
-
+"""
+Processing image (blur is optional)
+"""
 def preProcessing(img, blur):
   imgGray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
   if blur:
-    imgBlur = cv.GaussianBlur(imgGray, (5,5), 1) ;#5,5
+    imgBlur = cv.GaussianBlur(imgGray, (5,5), 1) 
   else: 
-    #imgBlur = cv.GaussianBlur(imgGray, (5,5), 1) ;#5,5
     imgBlur = imgGray
-  imgCanny = cv.Canny(imgBlur, 150, 255) ;#150, 255
-  kernel = np.ones((1,1)) ;#1,1
+  imgCanny = cv.Canny(imgBlur, 150, 255) 
+  kernel = np.ones((1,1))
   imgDial = cv.dilate(imgCanny, kernel, iterations=2)
   imgThres = cv.erode(imgDial, kernel, iterations=1)
   
@@ -42,7 +38,7 @@ def preProcessing(img, blur):
 
 
 """
-Find largest contours
+Find largest contours to find sudoku area on image
 """
 def getContours(img):
   biggest = np.array([])
@@ -60,11 +56,11 @@ def getContours(img):
   cv.drawContours(imgContour, biggest, -1, (255,0,0), 20)
   return biggest
 
+
 """
-Select cells which have numbers in it and fill in corresponding element in puzzle array.
+Select cells which have numbers in it, recognize the values and fill in corresponding element in puzzle array.
 """
 def initPuzzle(img):
-  img_concat = np.zeros((cellwidth-2*border,cellwidth-2*border), dtype='uint8')
   coordinates = []
   for x in range (9):
     for y in range (9):
@@ -82,26 +78,35 @@ def initPuzzle(img):
         kernel = cv.getStructuringElement(cv.MORPH_RECT, (1,1))
         dilate = cv.dilate(sharpen, kernel, iterations=1)
         result = 255 - dilate 
-        img_concat = cv.hconcat([img_concat, result])   
+        try: 
+          img_concat = cv.hconcat([img_concat, result])   
+        except UnboundLocalError: 
+          print("creating img_concat")
+          img_concat = result
   cv.imshow(f'result{x,y}', img_concat)
-  # print(coordinates)
-  values = getValues(img_concat)
-  return createPuzzle(coordinates, values)
+  print(coordinates)
+  values = _getValues(img_concat)
+  return _createPuzzle(coordinates, values)
+
 
 """
-Return the value of the number on the image, using trained a model.
+Return the value of the number on the image, using trained a model
 """
-def getValues(img):
+def _getValues(img):
   text = pytesseract.image_to_string(img)
-  # print(text)
+  print(text)
   values = []
   for i in text:
-    if is_integer(i):
+    if _is_integer(i):
       values.append(i)
   print(values)
   return values
 
-def is_integer(n):
+
+"""
+Checks whether object is an integer
+"""
+def _is_integer(n):
     try:
         float(n)
     except ValueError:
@@ -110,7 +115,10 @@ def is_integer(n):
         return float(n).is_integer()
 
 
-def createPuzzle(coordinates, values):
+"""
+Creates 2D array with values given by the coordinates
+"""
+def _createPuzzle(coordinates, values):
   puzzle = [
     [0,0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0,0],
@@ -122,9 +130,12 @@ def createPuzzle(coordinates, values):
     [0,0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0,0],
   ]
-  for x, y in coordinates: 
-    puzzle[y][x] = int(values.pop(0))
+  if len(coordinates) == len(values):
+    for x, y in coordinates: 
+      puzzle[y][x] = int(values.pop(0))
+
   return puzzle
+
 
 """
 Re-order the corner points of the contour from smallest to largest
@@ -133,13 +144,11 @@ def reOrder(myPoints):
   myPoints = myPoints.reshape((4,2))
   myPointsNew = np.zeros((4,1,2),np.int32)
   add = myPoints.sum(1)
-  #print("add", add)
   myPointsNew[0] = myPoints[np.argmin(add)]
   myPointsNew[3] = myPoints[np.argmax(add)]
   diff = np.diff(myPoints,axis=1)
   myPointsNew[1]= myPoints[np.argmin(diff)]
   myPointsNew[2] = myPoints[np.argmax(diff)]
-  #print("NewPoints",myPointsNew)
   return myPointsNew
 
 
@@ -158,11 +167,15 @@ def getWarp(img, biggest):
   return imgCropped
 
 
+
+
+img = cv.imread('images/sudoku0.jpg')
+cv.imshow('Original', img)
+
+imgGray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 cv.resize(img, (widthImg, heightImg))
 imgContour = img.copy()
-  
 imgThres = preProcessing(img, True)
-#cv.imshow('SudokuThres', imgThres)
 
 biggest = getContours(imgThres)
 if biggest.size !=0:
@@ -170,32 +183,22 @@ if biggest.size !=0:
   imgWarped=getWarp(img,biggest)
   cv.imshow("ImageWarped", imgWarped)
 
-
-#cv.imshow('Contour', imgContour)
+cv.imshow('Contour on original', imgContour)
 
 puzzle = initPuzzle(imgWarped)
 print(puzzle)
-cv.imshow("ImageWarped with cells", imgWarped)
-"""
-puzzle = [
-    [0,0,0,3,0,0,0,0,0],
-    [0,0,1,7,0,0,5,8,0],
-    [0,6,0,0,0,2,0,0,1],
-    [1,0,0,0,0,0,0,0,4],
-    [7,0,0,0,0,8,0,0,0],
-    [0,5,3,9,4,0,0,0,0],
-    [0,0,0,0,9,0,1,0,0],
-    [0,0,9,6,0,4,2,0,5],
-    [6,4,7,2,0,0,0,0,0],
-  ]
-"""
+#cv.imshow("ImageWarped with cells", imgWarped)
+
 viewer = PuzzleViewer(widthImg, puzzle)
-cv.imshow('Puzzle', viewer.img)
+cv.imshow('Puzzle viewer', viewer.img)
 
 sudokusolver = SudokuSolver(puzzle)
-viewer.insertMatrix(sudokusolver.solution)
-
-cv.imshow('Solution', viewer.img)
+if not sudokusolver.isSolvable:
+  print("ERROR: Sudoku is not solvable!")
+  #TODO Manually edit value
+else:
+  viewer.insertMatrix(sudokusolver.solution)
+  cv.imshow('Solution', viewer.img)
 
 
 cv.waitKey(0)
