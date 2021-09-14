@@ -8,25 +8,16 @@ from sudokusolver import SudokuSolver
 pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 cellwidth = 55
+border = 5
 widthImg = cellwidth*9
 heightImg = cellwidth*9
 
-puzzle = [
-  [0,0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0,0],
-]
 
 
 
-img = cv.imread('Images/sudoku2.jpg')
-#cv.imshow('Sudoku', img)
+
+img = cv.imread('images/sudoku2.jpg')
+cv.imshow('Sudoku', img)
 
 imgGray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 #cv.imshow('Gray', gray)
@@ -73,32 +64,67 @@ def getContours(img):
 Select cells which have numbers in it and fill in corresponding element in puzzle array.
 """
 def initPuzzle(img):
+  img_concat = np.zeros((cellwidth-2*border,cellwidth-2*border), dtype='uint8')
+  coordinates = []
   for x in range (9):
     for y in range (9):
       cv.rectangle(img, (x*cellwidth,y*cellwidth), ((x+1)*cellwidth, (y+1)*cellwidth), (0,255,0), 2)
-      cell = img[x*cellwidth+5:(x+1)*cellwidth-5, y*cellwidth+5:(y+1)*cellwidth-5]
-      cell = preProcessing(cell, False)
-      contours, hierarchy = cv.findContours(cell, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-      file = open("recognized.txt", "w+")
-      file.write("")
-      file.close()
+      cell = img[x*cellwidth+border:(x+1)*cellwidth-border, y*cellwidth+border:(y+1)*cellwidth-border]
+      cell_processed = preProcessing(cell, False)
+      contours, hierarchy = cv.findContours(cell_processed, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
       #Select cells which have a value
-      if contours:                         
-        file = open("recognized.txt", "a")
-        cv.imshow(f'Cell ({x,y})', cell)
-        puzzle[x][y] = getValue(cell, file)
-
+      if contours: 
+        coordinates.append([y,x])
+        cell_gray = cv.cvtColor(cell, cv.COLOR_BGR2GRAY)
+        sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+        sharpen = cv.filter2D(cell_gray, -1, sharpen_kernel)
+        sharpen = 255 - sharpen
+        kernel = cv.getStructuringElement(cv.MORPH_RECT, (1,1))
+        dilate = cv.dilate(sharpen, kernel, iterations=1)
+        result = 255 - dilate 
+        img_concat = cv.hconcat([img_concat, result])   
+  cv.imshow(f'result{x,y}', img_concat)
+  # print(coordinates)
+  values = getValues(img_concat)
+  return createPuzzle(coordinates, values)
 
 """
 Return the value of the number on the image, using trained a model.
 """
-def getValue(img, file):
+def getValues(img):
   text = pytesseract.image_to_string(img)
-  print(text)
-  file.write(text)
-  file.write("\n")
-  return 1
+  # print(text)
+  values = []
+  for i in text:
+    if is_integer(i):
+      values.append(i)
+  print(values)
+  return values
 
+def is_integer(n):
+    try:
+        float(n)
+    except ValueError:
+        return False
+    else:
+        return float(n).is_integer()
+
+
+def createPuzzle(coordinates, values):
+  puzzle = [
+    [0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0],
+  ]
+  for x, y in coordinates: 
+    puzzle[y][x] = int(values.pop(0))
+  return puzzle
 
 """
 Re-order the corner points of the contour from smallest to largest
@@ -147,9 +173,10 @@ if biggest.size !=0:
 
 #cv.imshow('Contour', imgContour)
 
-initPuzzle(imgWarped)
+puzzle = initPuzzle(imgWarped)
+print(puzzle)
 cv.imshow("ImageWarped with cells", imgWarped)
-
+"""
 puzzle = [
     [0,0,0,3,0,0,0,0,0],
     [0,0,1,7,0,0,5,8,0],
@@ -161,11 +188,12 @@ puzzle = [
     [0,0,9,6,0,4,2,0,5],
     [6,4,7,2,0,0,0,0,0],
   ]
-cv.imshow('Puzzle', puzzle)
-
+"""
+viewer = PuzzleViewer(widthImg, puzzle)
+cv.imshow('Puzzle', viewer.img)
 
 sudokusolver = SudokuSolver(puzzle)
-viewer = PuzzleViewer(widthImg, puzzle, sudokusolver.solution)
+viewer.insertMatrix(sudokusolver.solution)
 
 cv.imshow('Solution', viewer.img)
 
