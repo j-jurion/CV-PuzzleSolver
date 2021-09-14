@@ -3,6 +3,7 @@ import numpy as np
 import pytesseract ;#Install tesseract.exe file (v4.1.1)
 
 from puzzleviewer import PuzzleViewer
+from sudokusolver import SudokuSolver
 
 pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
@@ -149,10 +150,24 @@ if biggest.size !=0:
 initPuzzle(imgWarped)
 cv.imshow("ImageWarped with cells", imgWarped)
 
+puzzle = [
+    [0,0,0,3,0,0,0,0,0],
+    [0,0,1,7,0,0,5,8,0],
+    [0,6,0,0,0,2,0,0,1],
+    [1,0,0,0,0,0,0,0,4],
+    [7,0,0,0,0,8,0,0,0],
+    [0,5,3,9,4,0,0,0,0],
+    [0,0,0,0,9,0,1,0,0],
+    [0,0,9,6,0,4,2,0,5],
+    [6,4,7,2,0,0,0,0,0],
+  ]
+cv.imshow('Puzzle', puzzle)
 
-print(puzzle)
 
-puzzleViewer = PuzzleViewer(widthImg, puzzle)
-cv.imshow('Solution', puzzleViewer.img)
+sudokusolver = SudokuSolver(puzzle)
+viewer = PuzzleViewer(widthImg, puzzle, sudokusolver.solution)
+
+cv.imshow('Solution', viewer.img)
+
 
 cv.waitKey(0)
