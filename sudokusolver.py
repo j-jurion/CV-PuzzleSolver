@@ -1,9 +1,9 @@
+import copy
 
 class SudokuSolver:
 
   def __init__(self, puzzle):
-    self.puzzle = puzzle
-    self.solution = self.puzzle
+    self.solution = copy.deepcopy(puzzle)
     self.solve()
     print(self.solution)
 
