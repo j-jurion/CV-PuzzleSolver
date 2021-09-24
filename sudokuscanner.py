@@ -1,11 +1,13 @@
 import cv2 as cv
 import numpy as np
-import pytesseract ;#Install tesseract.exe file (v4.1.1)
+from keras.models import model_from_json
+import tensorflow as tf
+
 
 from puzzleviewer import PuzzleViewer
 from sudokusolver import SudokuSolver
+from models.predictor import Predictor
 
-pytesseract.pytesseract.tesseract_cmd=r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 
 """
@@ -23,7 +25,7 @@ heightImg = cellwidth*9
 """
 Processing image (blur is optional)
 """
-def preProcessing(img, blur):
+def preProcessing(img, blur=True):
   imgGray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
   if blur:
     imgBlur = cv.GaussianBlur(imgGray, (5,5), 1) 
@@ -61,64 +63,40 @@ def getContours(img):
 Select cells which have numbers in it, recognize the values and fill in corresponding element in puzzle array.
 """
 def initPuzzle(img):
-  coordinates = []
   for x in range (9):
     for y in range (9):
       cv.rectangle(img, (x*cellwidth,y*cellwidth), ((x+1)*cellwidth, (y+1)*cellwidth), (0,255,0), 2)
       cell = img[x*cellwidth+border:(x+1)*cellwidth-border, y*cellwidth+border:(y+1)*cellwidth-border]
       cell_processed = preProcessing(cell, False)
       contours, hierarchy = cv.findContours(cell_processed, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+      cv.imshow(f'contour cells', img)
+
       #Select cells which have a value
       if contours: 
-        coordinates.append([y,x])
+        cell_processed = cell_processed
         cell_gray = cv.cvtColor(cell, cv.COLOR_BGR2GRAY)
+        result_gray = 255 - cell_gray
         sharpen_kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
         sharpen = cv.filter2D(cell_gray, -1, sharpen_kernel)
         sharpen = 255 - sharpen
-        kernel = cv.getStructuringElement(cv.MORPH_RECT, (1,1))
-        dilate = cv.dilate(sharpen, kernel, iterations=1)
+        kernel = cv.getStructuringElement(cv.MORPH_RECT, (2,2)) ;#2,2
+        dilate = cv.dilate(sharpen, kernel, iterations=2) ;2
+        
         result = 255 - dilate 
-        try: 
-          img_concat = cv.hconcat([img_concat, result])   
-        except UnboundLocalError: 
-          print("creating img_concat")
-          img_concat = result
-  cv.imshow(f'result{x,y}', img_concat)
-  print(coordinates)
-  values = _getValues(img_concat)
-  return _createPuzzle(coordinates, values)
+        
+        cv.imshow(f'cells {x,y}', cell_processed)
+        cv.imwrite('images/test.jpg', cell_processed)
 
+        value = Predictor('images/test.jpg', 'models/model.h5')
+        print(value)
 
-"""
-Return the value of the number on the image, using trained a model
-"""
-def _getValues(img):
-  text = pytesseract.image_to_string(img)
-  print(text)
-  values = []
-  for i in text:
-    if _is_integer(i):
-      values.append(i)
-  print(values)
-  return values
-
-
-"""
-Checks whether object is an integer
-"""
-def _is_integer(n):
-    try:
-        float(n)
-    except ValueError:
-        return False
-    else:
-        return float(n).is_integer()
+  # return -1
 
 
 """
 Creates 2D array with values given by the coordinates
 """
-def _createPuzzle(coordinates, values):
+def _createPuzzle(triplets):
   puzzle = [
     [0,0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0,0],
@@ -130,10 +108,8 @@ def _createPuzzle(coordinates, values):
     [0,0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0,0],
   ]
-  if len(coordinates) == len(values):
-    for x, y in coordinates: 
-      puzzle[y][x] = int(values.pop(0))
-
+  for v, x, y in triplets: 
+    puzzle[y][x] = v
   return puzzle
 
 
@@ -169,13 +145,13 @@ def getWarp(img, biggest):
 
 
 
-img = cv.imread('images/sudoku0.jpg')
-cv.imshow('Original', img)
+img = cv.imread('images/sudoku2.jpg')
+# cv.imshow('Original', img)
 
 imgGray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 cv.resize(img, (widthImg, heightImg))
 imgContour = img.copy()
-imgThres = preProcessing(img, True)
+imgThres = preProcessing(img)
 
 biggest = getContours(imgThres)
 if biggest.size !=0:
@@ -186,19 +162,19 @@ if biggest.size !=0:
 cv.imshow('Contour on original', imgContour)
 
 puzzle = initPuzzle(imgWarped)
-print(puzzle)
-#cv.imshow("ImageWarped with cells", imgWarped)
+# print(puzzle)
+# #cv.imshow("ImageWarped with cells", imgWarped)
 
-viewer = PuzzleViewer(widthImg, puzzle)
-cv.imshow('Puzzle viewer', viewer.img)
+# viewer = PuzzleViewer(widthImg, puzzle)
+# cv.imshow('Puzzle viewer', viewer.img)
 
-sudokusolver = SudokuSolver(puzzle)
-if not sudokusolver.isSolvable:
-  print("ERROR: Sudoku is not solvable!")
-  #TODO Manually edit value
-else:
-  viewer.insertMatrix(sudokusolver.solution)
-  cv.imshow('Solution', viewer.img)
+# sudokusolver = SudokuSolver(puzzle)
+# if not sudokusolver.isSolvable:
+#   print("ERROR: Sudoku is not solvable!")
+#   #TODO Manually edit value
+# else:
+#   viewer.insertMatrix(sudokusolver.solution)
+#   cv.imshow('Solution', viewer.img)
 
 
 cv.waitKey(0)
