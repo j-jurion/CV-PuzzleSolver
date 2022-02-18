@@ -2,7 +2,7 @@
 
 version: main
 
-Script that scans for a sudoku puzzle and solves it.
+Script that scans for a binary puzzle and solves it.
 
 
 TODO:
