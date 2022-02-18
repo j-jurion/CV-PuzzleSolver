@@ -1,4 +1,4 @@
-# Computer Vision Sudoku Puzzle Solver
+# Computer Vision Puzzle Solver
 
 version: main
 
