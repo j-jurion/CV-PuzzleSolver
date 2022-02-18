@@ -2,18 +2,20 @@ import cv2 as cv
 import numpy as np
 
 from models.predictor import Predictor
-from puzzleviewer import PuzzleViewer
-from sudokusolver import SudokuSolver
+from solver.binarypuzzle.src.binarypuzzle import BinaryPuzzle
 
 
 
 """
 Constants
 """
+puzzle_cells_width = 12 ;# equals the puzzle height
+
 cellwidth = 55
 border = 10
-widthImg = cellwidth*12
-heightImg = cellwidth*12
+widthImg = cellwidth*puzzle_cells_width
+heightImg = cellwidth*puzzle_cells_width
+
 
 
 
@@ -59,11 +61,14 @@ def getContours(img):
 Select cells which have numbers in it, recognize the values and fill in corresponding element in puzzle array.
 """
 def initPuzzle(img):
+
+  puzzle = np.empty(shape=(puzzle_cells_width,puzzle_cells_width))
+  puzzle.fill(None)
+
   for x in range (12):
     for y in range (12):
       cv.rectangle(img, (x*cellwidth,y*cellwidth), ((x+1)*cellwidth, (y+1)*cellwidth), (0,255,0), 2)
       cell = img[x*cellwidth+border:(x+1)*cellwidth-border, y*cellwidth+border:(y+1)*cellwidth-border]
-      #cell = preProcessing(cell, False)
       cell_processed = cell.copy()
       cell_processed = preProcessing(cell_processed, False)
       contours, hierarchy = cv.findContours(cell_processed, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
@@ -71,16 +76,19 @@ def initPuzzle(img):
 
       #Select cells which have a value
       if contours: 
-        print(f"({x},{y})")
+        #print(f"({x},{y})")
         cell = cv.bitwise_not(cell)
 
         cv.imwrite('images/test.jpg', cell)
         prediction = Predictor('images/test.jpg', 'models/model.h5')
-        cv.imshow(f'({x},{y}): {prediction.value()}', cell)
+        #cv.imshow(f'({x},{y}): {prediction.value()}', cell)
 
-        print(prediction.value())
+        #print(prediction.value())
 
-  # return -1
+        puzzle[x][y] = prediction.value()
+
+  print(puzzle)
+  return puzzle
 
 
 """
@@ -151,8 +159,10 @@ if biggest.size !=0:
 cv.imshow('Contour on original', imgContour)
 
 puzzle = initPuzzle(imgWarped)
-print(puzzle)
 cv.imshow("ImageWarped with cells", imgWarped)
+
+solution = BinaryPuzzle(puzzle).solve()
+print(np.array(solution._puzzle))
 
 # viewer = PuzzleViewer(widthImg, puzzle)
 # cv.imshow('Puzzle viewer', viewer.img)
