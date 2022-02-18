@@ -11,6 +11,8 @@ class Predictor:
   def __init__(self, image, model):
     self.model = load_model(model)
     self.prediction = self.predict_number(image)
+
+  def value(self):
     return self.prediction
     
   # load and prepare the image
@@ -33,9 +35,11 @@ class Predictor:
     # load model
     
     # predict the class
-    predict_x=self.model.predict(img) 
-    classes_x=np.argmax(predict_x,axis=1)
-    print(classes_x[0])
+    predict_x0, predict_x1=self.model.predict(img)[0][0], self.model.predict(img)[0][1]
+    #print(predict_x0, predict_x1)
+    classes_x=np.argmax([predict_x0, predict_x1])
+    #print(classes_x)
+    return classes_x
 
 
 
@@ -43,7 +47,7 @@ class Predictor:
 Test scripts
 """
 if __name__ == "__main__":
-  image = '../images/1-97.png'
+  image = '../images/bin1.jpg'
   model = 'model.h5'
   predictor = Predictor(image, model)
 

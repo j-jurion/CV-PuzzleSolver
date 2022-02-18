@@ -91,6 +91,6 @@ if __name__ == "__main__":
 
   viewer = PuzzleViewer(495, puzzle)
   viewer.insertMatrix(solution)
-  cv.imshow('puzzle', viewer.img)
+  cv.imshow('bin1.JPG', viewer.img)
 
   cv.waitKey(0)
