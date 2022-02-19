@@ -1,6 +1,6 @@
 import cv2 as cv
 
-DEV = True
+DEV = False
 
 class DevMessage():
   def __init__(self, msg):

@@ -1,9 +1,6 @@
 # make a prediction for a new image.
-from keras.preprocessing.image import load_img
-from keras.preprocessing.image import img_to_array
 from keras.models import load_model
 import cv2 as cv
-import numpy as np
 
 
 class Predictor:
@@ -11,21 +8,19 @@ class Predictor:
   def __init__(self, image, model):
     self.model = load_model(model)
     self.prediction = self.predict_number(image)
-
-  def value(self):
-    return self.prediction
     
   # load and prepare the image
-  def load_image(self, filename):
+  def load_image(self, image):
     # load the image
-    img = load_img(filename, grayscale=True, target_size=(28, 28))
-    # convert to array
-    img = img_to_array(img)
+    img = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+
     # reshape into a single sample with 1 channel
     img = img.reshape(1, 28, 28, 1)
+
     # prepare pixel data
     img = img.astype('float32')
     img = img / 255.0
+
     return img
 
   # load an image and predict the class
@@ -35,11 +30,9 @@ class Predictor:
     # load model
     
     # predict the class
-    predict_x0, predict_x1=self.model.predict(img)[0][0], self.model.predict(img)[0][1]
-    #print(predict_x0, predict_x1)
-    classes_x=np.argmax([predict_x0, predict_x1])
-    #print(classes_x)
-    return classes_x
+    if self.model.predict(img)[0][0] > self.model.predict(img)[0][1]:
+      return 0
+    else: return 1
 
 
 

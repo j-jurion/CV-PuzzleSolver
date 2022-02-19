@@ -7,7 +7,6 @@ from __future__ import annotations
 from .constants import N
 from .exceptions import InvalidPuzzleError, UnsolvablePuzzleError
 
-import numpy as np
 from typing import List, Optional, Tuple
 from z3 import sat, And, Int, Not, Or, Solver, Sum
 
@@ -43,7 +42,7 @@ class BinaryPuzzle:
         # Check that all values are either 0, 1, or None.
         for row in puzzle:
             for value in row:
-                if value not in {0, 1} and not np.isnan(value):
+                if value not in {-1, 0, 1}:
                     raise InvalidPuzzleError
 
         # Our input puzzle is good.
@@ -143,12 +142,12 @@ class BinaryPuzzle:
 
             # We skip our None values since they are the values we are
             # interested in finding.
-            if np.isnan(value):
-                continue
+            if value == -1:
+              continue
 
             # This would be equivalent to assigning a value to a variable in
             # the non-symbolic world.
-            solver.add(symbols[(x, y)] == value)
+            solver.add(symbols[(x, y)] == float(value))
 
         # We can now begin to add constraints to our model. The first and most
         # simple constraint we add is that each cell must either contain a 0 or

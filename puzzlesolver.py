@@ -17,12 +17,12 @@ puzzle = scanner.puzzle
 devmsg(puzzle)
 
 # Solve puzzle
-solution = BinaryPuzzle(puzzle).solve()
-devmsg(np.array(solution._puzzle))
+solution = np.array(BinaryPuzzle(puzzle).solve()._puzzle)
+devmsg(solution)
 
 # Show solved puzzle
-viewer = PuzzleViewer(495, puzzle)
-viewer.insertMatrix(solution)
-cv.imshow('bin1.JPG', viewer.img)
+viewer = PuzzleViewer(495, puzzle, solution)
+cv.imshow('Solved puzzle', viewer.img)
+
 
 cv.waitKey(0)

@@ -12,15 +12,15 @@ Constants
 puzzle_cells_width = 12 ;# equals the puzzle height
 
 cellwidth = 55
-border = 10
+border = 13 ;#Required! to get the right shape for predictor.py
 widthImg = cellwidth*puzzle_cells_width
 heightImg = cellwidth*puzzle_cells_width
 
 
 
 class PuzzleScanner():
-  def __init__(self, image):
-    img = cv.imread(image)
+  def __init__(self, filename):
+    img = cv.imread(filename)
     devimg('Original', img)
     imgContour = img.copy()
     biggest = self.getContours(img, imgContour)
@@ -39,13 +39,13 @@ class PuzzleScanner():
   Select cells which have numbers in it, recognize the values and fill in corresponding element in puzzle array.
   """
   def getPuzzle(self, img):
-    puzzle = np.empty(shape=(puzzle_cells_width,puzzle_cells_width))
-    puzzle.fill(None)
+    puzzle = np.full((puzzle_cells_width, puzzle_cells_width), -1, dtype=np.int8)
 
     for x in range (12):
       for y in range (12):
         cv.rectangle(img, (x*cellwidth,y*cellwidth), ((x+1)*cellwidth, (y+1)*cellwidth), (0,255,0), 2)
-        cell = img[x*cellwidth+border:(x+1)*cellwidth-border, y*cellwidth+border:(y+1)*cellwidth-border]
+        cell = img[x*cellwidth+border+1:(x+1)*cellwidth-border, y*cellwidth+border+1:(y+1)*cellwidth-border]
+        devmsg(f"cell shape: {cell.shape}. Should be (28,28,3)")
         cell_processed = cell.copy()
         cell_processed = self.preProcessing(cell_processed, False)
         contours, hierarchy = cv.findContours(cell_processed, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
@@ -54,10 +54,9 @@ class PuzzleScanner():
         #Select cells which have a value
         if contours: 
           cell = cv.bitwise_not(cell)
-          cv.imwrite('images/test.jpg', cell)
-          prediction = Predictor('images/test.jpg', 'models/model.h5')
-          puzzle[x][y] = prediction.value()
-
+          assert cell.shape[:2] == (28,28), f"Cell shape should be (28,28), is {cell.shape[:2]}"
+          prediction = Predictor(cell, 'models/model.h5').prediction
+          puzzle[x][y] = prediction
     return puzzle
 
 
