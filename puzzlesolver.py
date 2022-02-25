@@ -9,16 +9,16 @@ from puzzlescanner import PuzzleScanner
 from solver.binarypuzzle.src.binarypuzzle import BinaryPuzzle
 
 # Take picture --> TODO
-image = 'images/bin1.jpg'
+image = 'images/bin10-2-clean.jpg'
 
 # Upload image in puzzlescanner.py
 scanner = PuzzleScanner(image)
 puzzle = scanner.puzzle
-devmsg(puzzle)
+devmsg(f"Puzzle: \n {puzzle}")
 
 # Solve puzzle
 solution = np.array(BinaryPuzzle(puzzle).solve()._puzzle)
-devmsg(solution)
+devmsg(f"Solution: \n {solution}")
 
 # Show solved puzzle
 viewer = PuzzleViewer(495, puzzle, solution)
