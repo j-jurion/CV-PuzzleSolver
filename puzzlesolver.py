@@ -1,5 +1,6 @@
 import numpy as np
 import cv2 as cv
+import sys
 
 from dev import DevMessage as devmsg
 from dev import DevImage as devimg
@@ -9,8 +10,13 @@ from puzzlescanner import PuzzleScanner
 from solver.binarypuzzle.src.binarypuzzle import BinaryPuzzle
 
 # Take picture --> TODO
-image = 'images/bin10-2-clean.jpg'
+if len(sys.argv) < 2:
+  image = 'images/bin12.jpg'
+else:
+  print(sys.argv)
+  image = str(sys.argv[1])
 
+print(image)
 # Upload image in puzzlescanner.py
 scanner = PuzzleScanner(image)
 puzzle = scanner.puzzle
